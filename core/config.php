@@ -184,18 +184,22 @@ function verifyUserPassword($username, $password) {
 
 function logLogin($username, $ip, $status) {
     global $logs_db; 
+    if(empty($logs_db)) $logs_db = DIR_SYSTEM_USERS . '/login_logs.json';
     $logs = getDB($logs_db);
+    if (!is_array($logs)) $logs = [];
     array_unshift($logs, ['time' => time(), 'user' => $username, 'ip' => $ip, 'status' => $status]);
     if(count($logs) > 100) $logs = array_slice($logs, 0, 100);
-    saveDB($logs_db, $logs);
+    saveDB($logs_db, array_values($logs));
 }
 
 function logActivity($username, $action_detail) {
     global $activity_db;
+    if(empty($activity_db)) $activity_db = DIR_SYSTEM_USERS . '/activity_logs.json';
     $logs = getDB($activity_db);
+    if (!is_array($logs)) $logs = [];
     array_unshift($logs, ['time' => time(), 'user' => $username, 'detail' => $action_detail]);
     if(count($logs) > 100) $logs = array_slice($logs, 0, 100);
-    saveDB($activity_db, $logs);
+    saveDB($activity_db, array_values($logs));
 }
 
 function getSystemStats() {
