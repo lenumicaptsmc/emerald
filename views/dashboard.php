@@ -65,9 +65,11 @@
         .container-card { transition: all 0.2s ease; border: 1px solid var(--border-color); background: var(--bg-panel); backdrop-filter: blur(10px); border-radius: 1.25rem; overflow: hidden; cursor: pointer; }
         .container-card:hover { transform: translateY(-5px); box-shadow: var(--shadow); border-color: var(--text-muted); }
         
-        .editor-wrapper { border-radius: 1rem; overflow: hidden; border: 1px solid var(--border-color); display: flex; flex-direction: column; background: #1e1e1e; }
-        .CodeMirror { flex: 1; height: 100% !important; font-family: 'Fira Code', monospace; font-size: 14px; background: #1e1e1e !important; color: #d4d4d4 !important; }
+        /* Fix Layout Scroll pada Editor CodeMirror */
+        #editorContainer { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+        .CodeMirror { position: absolute; top: 0; left: 0; right: 0; bottom: 0; height: 100% !important; font-family: 'Fira Code', monospace; font-size: 14px; background: #1e1e1e !important; color: #d4d4d4 !important; }
         html:not(.dark) .CodeMirror { background: #ffffff !important; color: #111827 !important; }
+        
         .CodeMirror-dialog { background: var(--bg-panel); backdrop-filter: blur(10px); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px 15px; border-radius: 8px; }
         .CodeMirror-dialog input { background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 4px; padding: 4px 8px; outline: none; }
 
@@ -93,10 +95,6 @@
 
         .theme-toggle-btn { transition: all 0.3s ease; }
         html:not(.dark) .theme-toggle-btn { background-color: #10b981; }
-
-        .online-dot { position: absolute; bottom: 0; right: 0; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--bg-panel); transition: all 0.3s ease; }
-        .online-dot.is-online { background-color: #10b981; box-shadow: 0 0 10px rgba(16,185,129,0.8); }
-        .online-dot.is-offline { background-color: #4b5563; }
         
         .file-checkbox { width: 1.2rem; height: 1.2rem; border-radius: 0.375rem; border: 1px solid var(--border-color); appearance: none; cursor: pointer; background: var(--bg-input); transition: all 0.2s; }
         .file-checkbox:checked { background: #0ea5e9; border-color: #0ea5e9; background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e"); }
@@ -116,7 +114,6 @@
 
 <div class="flex h-screen overflow-hidden relative z-10">
 
-    <!-- SIDEBAR -->
     <aside class="w-72 bg-[var(--glass-bg)] backdrop-blur-2xl border-r border-border flex flex-col shadow-2xl transition-all duration-300">
         <div class="h-24 flex items-center px-8 border-b border-border">
             <div class="flex items-center gap-4">
@@ -125,7 +122,7 @@
                 </div>
                 <div>
                     <h1 class="font-extrabold text-2xl tracking-tighter text-primary">EMERALD</h1>
-                    <p class="text-[10px] text-brand-500 font-mono tracking-widest uppercase">System Core v7.0</p>
+                    <p class="text-[10px] text-brand-500 font-mono tracking-widest uppercase">System Core v9.0</p>
                 </div>
             </div>
         </div>
@@ -178,7 +175,6 @@
         </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
     <main class="flex-1 flex flex-col overflow-hidden relative">
         <header class="h-24 bg-[var(--glass-bg)] backdrop-blur-2xl flex items-center justify-between px-10 z-20 border-b border-border shadow-md">
             <div class="flex flex-col">
@@ -202,13 +198,12 @@
 
         <div class="flex-1 overflow-y-auto p-10 custom-scrollbar relative z-10 animate-slide-up" id="mainAreaWrapper">
             
-            <!-- VIEW: DASHBOARD -->
             <div id="view_dashboard" class="view-section active">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     <div class="bg-panel border border-border rounded-2xl p-6 shadow-[var(--shadow)] backdrop-blur-md relative overflow-hidden group">
                         <div class="absolute -right-6 -top-6 w-24 h-24 bg-brand-500/10 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
                         <h4 class="text-primary text-lg font-bold mb-4 flex items-center gap-2 relative z-10"><i class="fa-solid fa-shield-halved text-[#0ea5e9]"></i> Security Cipher</h4>
-                        <ul class="space-y-3 font-mono text-xs relative z-10" id="sysEntityList">
+                        <ul class="space-y-3 font-mono text-xs relative z-10">
                             <li class="flex justify-between border-b border-border pb-2"><span class="text-muted">Encryption Standard</span><span class="text-emerald-500 font-bold">AES-256-CBC</span></li>
                             <li class="flex justify-between border-b border-border pb-2"><span class="text-muted">Database Integrity</span><span class="text-emerald-500 font-bold">OPTIMAL</span></li>
                         </ul>
@@ -216,9 +211,17 @@
                     <div class="bg-panel border border-border rounded-2xl p-6 shadow-[var(--shadow)] backdrop-blur-md relative overflow-hidden group">
                         <div class="absolute -right-6 -top-6 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
                         <h4 class="text-primary text-lg font-bold mb-4 flex items-center gap-2 relative z-10"><i class="fa-solid fa-network-wired text-emerald-500"></i> Active Protection</h4>
-                        <ul class="space-y-3 font-mono text-xs relative z-10" id="sysFirewallList">
+                        <ul class="space-y-3 font-mono text-xs relative z-10">
                             <li class="flex justify-between border-b border-border pb-2"><span class="text-muted">Firewall Status</span><span class="text-emerald-500 font-bold">ACTIVE</span></li>
                             <li class="flex justify-between border-b border-border pb-2"><span class="text-muted">Active Node IP</span><span class="text-primary font-bold"><?= $_SERVER['REMOTE_ADDR'] ?></span></li>
+                        </ul>
+                    </div>
+                    <div class="bg-panel border border-border rounded-2xl p-6 shadow-[var(--shadow)] backdrop-blur-md relative overflow-hidden group">
+                        <div class="absolute -right-6 -top-6 w-24 h-24 bg-purple-500/10 rounded-full blur-xl group-hover:scale-150 transition-transform"></div>
+                        <h4 class="text-primary text-lg font-bold mb-4 flex items-center gap-2 relative z-10"><i class="fa-solid fa-server text-purple-500"></i> Environment</h4>
+                        <ul class="space-y-3 font-mono text-xs relative z-10" id="sysEnvList">
+                            <li class="flex justify-between border-b border-border pb-2"><span class="text-muted">Storage</span><span class="text-purple-500 font-bold" id="dashDisk">Fetching...</span></li>
+                            <li class="flex justify-between border-b border-border pb-2"><span class="text-muted">Software Interface</span><span class="text-primary font-bold uppercase" id="dashSapi">Fetching...</span></li>
                         </ul>
                     </div>
                     <div class="bg-panel border border-border rounded-2xl p-6 shadow-[var(--shadow)] backdrop-blur-md relative overflow-hidden group">
@@ -234,9 +237,11 @@
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
                     <div class="bg-panel border border-border rounded-2xl overflow-hidden shadow-2xl backdrop-blur-md flex flex-col h-[400px]">
-                        <div class="px-8 py-5 border-b border-border bg-[var(--hover-bg)] flex items-center gap-3 shrink-0">
-                            <i class="fa-solid fa-shield-halved text-brand-500"></i>
-                            <h3 class="font-bold text-primary text-lg">System Access Logs</h3>
+                        <div class="px-8 py-5 border-b border-border bg-[var(--hover-bg)] flex items-center justify-between shrink-0">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-shield-halved text-brand-500"></i>
+                                <h3 class="font-bold text-primary text-lg">System Access Logs</h3>
+                            </div>
                         </div>
                         <div class="overflow-y-auto flex-1 custom-scrollbar">
                             <table class="w-full text-left border-collapse">
@@ -254,9 +259,11 @@
                     </div>
                     
                     <div class="bg-panel border border-border rounded-2xl overflow-hidden shadow-2xl backdrop-blur-md flex flex-col h-[400px]">
-                        <div class="px-8 py-5 border-b border-border bg-[var(--hover-bg)] flex items-center gap-3 shrink-0">
-                            <i class="fa-solid fa-clipboard-list text-purple-500"></i>
-                            <h3 class="font-bold text-primary text-lg">Activity Journal</h3>
+                        <div class="px-8 py-5 border-b border-border bg-[var(--hover-bg)] flex items-center justify-between shrink-0">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-clipboard-list text-purple-500"></i>
+                                <h3 class="font-bold text-primary text-lg">Activity Journal</h3>
+                            </div>
                         </div>
                         <div class="overflow-y-auto flex-1 custom-scrollbar">
                             <table class="w-full text-left border-collapse">
@@ -274,55 +281,57 @@
                 </div>
             </div>
 
-            <!-- VIEW: FILE MANAGER -->
             <div id="view_files" class="view-section">
-                <!-- Bulk Actions Toolbar -->
-                <div class="flex items-center gap-3 mb-6 bg-input p-4 rounded-xl border border-border hidden shadow-lg" id="bulkToolbar">
+                <div class="flex items-center gap-3 mb-6 bg-input p-4 rounded-xl border border-border hidden shadow-lg animate-slide-up" id="bulkToolbar">
                     <span class="text-primary font-bold text-sm mr-2 border-r border-border pr-4"><span id="selCount" class="text-brand-500 text-lg">0</span> selected</span>
                     <button class="bg-[var(--hover-bg)] text-red-500 px-4 py-2.5 rounded-lg text-xs font-bold hover:bg-red-500 hover:text-white transition-all btn-animated" onclick="bulkAction('delete')"><i class="fa-solid fa-trash mr-1"></i> Delete</button>
                     <button class="bg-[var(--hover-bg)] text-brand-500 px-4 py-2.5 rounded-lg text-xs font-bold hover:bg-brand-500 hover:text-white transition-all btn-animated" onclick="bulkAction('copy')"><i class="fa-solid fa-copy mr-1"></i> Copy</button>
                     <button class="bg-[var(--hover-bg)] text-purple-500 px-4 py-2.5 rounded-lg text-xs font-bold hover:bg-purple-500 hover:text-white transition-all btn-animated" onclick="bulkAction('cut')"><i class="fa-solid fa-scissors mr-1"></i> Cut</button>
                 </div>
                 
-                <div class="flex items-center gap-3 mb-6 bg-brand-500/10 p-4 rounded-xl border border-brand-500/30 hidden shadow-lg" id="pasteToolbar">
+                <div class="flex items-center gap-3 mb-6 bg-brand-500/10 p-4 rounded-xl border border-brand-500/30 hidden shadow-lg animate-slide-up" id="pasteToolbar">
                     <span class="text-brand-500 font-bold text-sm mr-2 border-r border-brand-500/30 pr-4" id="pasteInfo"></span>
                     <button class="bg-emerald-500 text-white px-5 py-2.5 rounded-lg text-xs font-bold hover:bg-emerald-600 transition-all btn-animated shadow-lg" onclick="executePaste()"><i class="fa-solid fa-paste mr-1"></i> Paste Here</button>
                     <button class="bg-transparent border border-gray-500 text-gray-500 px-4 py-2.5 rounded-lg text-xs font-bold hover:bg-gray-500 hover:text-white transition-all btn-animated" onclick="cancelPaste()"><i class="fa-solid fa-xmark mr-1"></i> Cancel</button>
                 </div>
 
-                <div class="flex justify-between items-center mb-8">
+                <div class="flex justify-between items-center mb-8 bg-panel border border-border p-4 rounded-2xl shadow-sm backdrop-blur-md">
                     <div class="flex gap-2">
-                        <button class="bg-panel border border-border text-primary px-5 py-3 text-sm font-bold rounded-xl hover:bg-input transition-all btn-animated" onclick="navigateUp()" id="btnNavUp" style="display:none;">
+                        <button class="bg-[var(--bg-input)] border border-border text-primary px-5 py-2.5 text-sm font-bold rounded-xl hover:bg-[var(--hover-bg)] transition-all btn-animated" onclick="navigateUp()" id="btnNavUp" style="display:none;">
                             <i class="fa-solid fa-arrow-left mr-2"></i> Back
                         </button>
+                        <div class="relative group">
+                            <i class="fa-solid fa-filter absolute left-3 top-1/2 -translate-y-1/2 text-muted"></i>
+                            <input type="text" id="assetSearchFilter" placeholder="Filter files..." onkeyup="filterAssets()" class="text-sm pl-10 pr-4 py-2.5 border border-border bg-[var(--bg-input)] rounded-xl focus:outline-none focus:border-brand-500 w-48 text-primary transition-all shadow-inner">
+                        </div>
                     </div>
                     <div class="flex gap-3">
-                        <button class="bg-panel border border-border text-brand-500 px-4 py-3 text-sm font-bold rounded-xl hover:border-brand-500/50 transition-all btn-animated flex items-center gap-2" onclick="promptCreateFolder()">
-                            <i class="fa-solid fa-folder-plus text-lg"></i> New Folder
+                        <button class="bg-[var(--bg-input)] border border-border text-brand-500 px-4 py-2.5 text-sm font-bold rounded-xl hover:border-brand-500/50 transition-all btn-animated flex items-center gap-2" onclick="promptCreateFolder()">
+                            <i class="fa-solid fa-folder-plus text-lg"></i> Folder
                         </button>
-                        <button class="bg-panel border border-border text-emerald-500 px-4 py-3 text-sm font-bold rounded-xl hover:border-emerald-500/50 transition-all btn-animated flex items-center gap-2" onclick="promptCreateFile()">
-                            <i class="fa-solid fa-file-circle-plus text-lg"></i> New File
+                        <button class="bg-[var(--bg-input)] border border-border text-emerald-500 px-4 py-2.5 text-sm font-bold rounded-xl hover:border-emerald-500/50 transition-all btn-animated flex items-center gap-2" onclick="promptCreateFile()">
+                            <i class="fa-solid fa-file-circle-plus text-lg"></i> File
                         </button>
-                        <button class="btn-gradient px-4 py-3 text-sm font-bold rounded-xl btn-animated flex items-center gap-2" onclick="document.getElementById('fileInput').click()">
-                            <i class="fa-solid fa-file-arrow-up text-lg"></i> Upload File
+                        <button class="btn-gradient px-4 py-2.5 text-sm font-bold rounded-xl btn-animated flex items-center gap-2" onclick="document.getElementById('fileInput').click()">
+                            <i class="fa-solid fa-file-arrow-up text-lg"></i> Upload
                         </button>
-                        <button class="btn-gradient px-4 py-3 text-sm font-bold rounded-xl btn-animated flex items-center gap-2" onclick="document.getElementById('folderInput').click()">
-                            <i class="fa-solid fa-folder-arrow-up text-lg"></i> Upload Folder
+                        <button class="btn-gradient px-4 py-2.5 text-sm font-bold rounded-xl btn-animated flex items-center gap-2" onclick="document.getElementById('folderInput').click()">
+                            <i class="fa-solid fa-folder-arrow-up text-lg"></i> Folder
                         </button>
                         <input type="file" id="fileInput" class="hidden" multiple onchange="handleStandardUpload(this.files, false)">
                         <input type="file" id="folderInput" class="hidden" webkitdirectory directory multiple onchange="handleStandardUpload(this.files, true)">
                         
-                        <button class="bg-panel border border-border text-muted px-4 py-3 text-sm font-bold rounded-xl hover:bg-input hover:text-primary transition-all btn-animated" onclick="loadFiles(currentPath)">
+                        <button class="bg-[var(--bg-input)] border border-border text-muted px-4 py-2.5 text-sm font-bold rounded-xl hover:bg-[var(--hover-bg)] hover:text-primary transition-all btn-animated" onclick="loadFiles(currentPath)">
                             <i class="fa-solid fa-rotate-right"></i>
                         </button>
                     </div>
                 </div>
 
-                <div class="bg-panel border border-border rounded-2xl overflow-hidden shadow-[var(--shadow)] backdrop-blur-md flex flex-col h-[65vh]">
+                <div class="bg-panel border border-border rounded-2xl overflow-hidden shadow-[var(--shadow)] backdrop-blur-md flex flex-col h-[60vh]">
                     <div class="overflow-y-auto flex-1 custom-scrollbar">
                         <table class="w-full text-left border-collapse">
                             <thead>
-                                <tr class="bg-input border-b border-border text-xs font-bold text-muted uppercase tracking-widest sticky top-0 z-10">
+                                <tr class="bg-input border-b border-border text-xs font-bold text-muted uppercase tracking-widest sticky top-0 z-10 shadow-sm">
                                     <th class="px-6 py-5 w-12 text-center">
                                         <input type="checkbox" id="selectAllCheckbox" class="file-checkbox" onclick="event.stopPropagation(); toggleSelectAll(this)">
                                     </th>
@@ -341,7 +350,6 @@
                 </div>
             </div>
 
-            <!-- VIEW: CONTAINERS -->
             <div id="view_notes" class="view-section">
                 <div class="flex justify-between items-center mb-8">
                     <p class="text-muted font-medium">Unified secure storage. Click cards to view comprehensive data.</p>
@@ -352,7 +360,6 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="notesListArea"></div>
             </div>
 
-            <!-- VIEW: CLOAKING -->
             <div id="view_cloaking" class="view-section">
                 <div class="flex justify-between items-center mb-8">
                     <p class="text-muted font-medium">Advanced SEO Cloaking Management.</p>
@@ -363,7 +370,6 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6" id="cloakingGrid"></div>
             </div>
 
-            <!-- VIEW: USERS -->
             <div id="view_users" class="view-section">
                 <div class="flex justify-between items-center mb-8">
                     <p class="text-muted font-medium">Manage System Identities and Privileges.</p>
@@ -385,7 +391,6 @@
                 </div>
             </div>
 
-            <!-- VIEW: FIREWALL -->
             <div id="view_firewall" class="view-section">
                 <div class="flex justify-between items-center mb-8">
                     <p class="text-muted font-medium">Manage System Access IP Whitelist.</p>
@@ -411,8 +416,6 @@
         </div>
     </main>
 </div>
-
-<!-- ================= MODALS ================= -->
 
 <div class="modal fixed inset-0 flex items-center justify-center p-4" id="modalAuthPrompt">
     <div class="fixed inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal('modalAuthPrompt')"></div>
@@ -491,42 +494,55 @@
     <img id="avatarZoomImg" src="" class="max-w-full max-h-full rounded-2xl relative z-10 shadow-[0_0_50px_rgba(14,165,233,0.5)] object-contain border border-[var(--border-color)]">
 </div>
 
-<!-- Editor Modal Full Height Fix -->
 <div class="modal fixed inset-0 flex items-center justify-center p-4 md:p-8" id="modalEditor">
     <div class="fixed inset-0 bg-black/90 backdrop-blur-md" onclick="closeModal('modalEditor')"></div>
-    <div class="modal-content rounded-3xl w-full max-w-7xl flex flex-col h-[95vh] relative z-10 overflow-hidden border-0 shadow-none bg-transparent">
-        <div class="flex flex-col h-full bg-[var(--bg-panel)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-2xl">
-            <div class="px-8 py-4 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--hover-bg)] shrink-0">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-brand-500/20 flex items-center justify-center border border-brand-500/30">
-                        <i id="editorIcon" class="fa-solid fa-code text-[#0ea5e9] text-xl"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-xl text-primary font-mono tracking-tight flex items-center gap-3">
-                            <span id="editorTitle">filename.ext</span>
-                            <span id="editorSize" class="text-xs bg-input text-muted border border-[var(--border-color)] px-2 py-0.5 rounded font-sans">0 KB</span>
-                        </h3>
-                        <div class="text-xs text-muted mt-1 flex items-center gap-3">
-                            <span><i class="fa-regular fa-clock mr-1"></i> <span id="editorModified">...</span></span>
-                            <span><i class="fa-solid fa-keyboard mr-1"></i> <kbd class="bg-input border border-[var(--border-color)] px-1 rounded font-mono">Ctrl+F</kbd> Find | <kbd class="bg-input border border-[var(--border-color)] px-1 rounded font-mono">Ctrl+S</kbd> Save</span>
-                        </div>
+    <div class="modal-content rounded-3xl w-full max-w-7xl flex flex-col h-[95vh] relative z-10 overflow-hidden border border-[var(--border-color)] shadow-2xl bg-[var(--bg-panel)]">
+        <div class="px-8 py-4 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--hover-bg)] shrink-0 z-50 sticky top-0 backdrop-blur-xl">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-brand-500/20 flex items-center justify-center border border-brand-500/30">
+                    <i id="editorIcon" class="fa-solid fa-code text-[#0ea5e9] text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-xl text-primary font-mono tracking-tight flex items-center gap-3">
+                        <span id="editorTitle">filename.ext</span>
+                        <span id="editorSize" class="text-xs bg-input text-muted border border-[var(--border-color)] px-2 py-0.5 rounded font-sans">0 KB</span>
+                    </h3>
+                    <div class="text-xs text-muted mt-1 flex items-center gap-3">
+                        <span><i class="fa-regular fa-clock mr-1"></i> <span id="editorModified">...</span></span>
+                        <span><i class="fa-solid fa-keyboard mr-1"></i> <kbd class="bg-input border border-[var(--border-color)] px-1 rounded font-mono">Ctrl+F</kbd> Find | <kbd class="bg-input border border-[var(--border-color)] px-1 rounded font-mono">Ctrl+S</kbd> Save</span>
                     </div>
                 </div>
-                <div class="flex gap-3">
-                    <button class="bg-transparent border border-[var(--border-color)] text-primary px-6 py-3 text-sm font-bold rounded-xl hover:bg-input transition-all btn-animated" onclick="closeModal('modalEditor')">Close</button>
-                    <button class="btn-gradient text-white px-8 py-3 text-sm font-bold rounded-xl btn-animated flex items-center gap-2" onclick="saveFileEditor()">
-                        <i class="fa-solid fa-floppy-disk"></i> Save Source
-                    </button>
-                </div>
             </div>
-            <div class="flex-1 relative w-full flex flex-col bg-[#1e1e1e]" id="editorContainer">
-                <textarea id="codeEditor"></textarea>
+            <div class="flex gap-3">
+                <button class="bg-[var(--bg-input)] border border-[var(--border-color)] text-primary px-6 py-3 text-sm font-bold rounded-xl hover:bg-[var(--hover-bg)] transition-all btn-animated" onclick="closeModal('modalEditor')">Close</button>
+                <button class="btn-gradient text-white px-8 py-3 text-sm font-bold rounded-xl btn-animated flex items-center gap-2" onclick="saveFileEditor()">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Source
+                </button>
             </div>
+        </div>
+        <div class="flex-1 relative w-full flex flex-col bg-[#1e1e1e]" id="editorContainer">
+            <textarea id="codeEditor"></textarea>
         </div>
     </div>
 </div>
 
-<!-- Unified Container BUILD/EDIT Modal -->
+<div class="modal fixed inset-0 flex items-center justify-center p-4 md:p-8" id="modalPreviewAsset">
+    <div class="fixed inset-0 bg-black/90 backdrop-blur-md" onclick="closeModal('modalPreviewAsset')"></div>
+    <div class="modal-content rounded-3xl w-full max-w-5xl flex flex-col h-[85vh] relative z-10 overflow-hidden border border-[var(--border-color)] shadow-2xl bg-[var(--bg-panel)]">
+        <div class="px-8 py-5 border-b border-[var(--border-color)] flex justify-between items-center bg-[var(--hover-bg)] shrink-0">
+            <h3 class="font-bold text-xl text-primary font-mono tracking-tight flex items-center gap-3">
+                <i class="fa-solid fa-eye text-brand-500"></i>
+                <span id="previewTitle">Preview</span>
+            </h3>
+            <div class="flex gap-3">
+                <button class="bg-transparent border border-[var(--border-color)] text-primary px-6 py-2.5 text-sm font-bold rounded-xl hover:bg-[var(--bg-input)] transition-all btn-animated" onclick="closeModal('modalPreviewAsset')">Close</button>
+                <button id="btnEditPreview" class="bg-emerald-600 text-white px-6 py-2.5 text-sm font-bold rounded-xl btn-animated hover:bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center gap-2"><i class="fa-solid fa-pen"></i> Edit Source</button>
+            </div>
+        </div>
+        <div class="flex-1 overflow-hidden relative flex bg-black/50" id="previewContentArea"></div>
+    </div>
+</div>
+
 <div class="modal fixed inset-0 flex items-center justify-center p-4" id="modalContainer">
     <div class="fixed inset-0 bg-black/80 backdrop-blur-sm" onclick="closeModal('modalContainer')"></div>
     <div class="modal-content rounded-3xl w-full max-w-7xl relative z-10 max-h-[95vh] flex flex-col overflow-hidden">
@@ -542,12 +558,21 @@
         <div class="p-8 overflow-y-auto custom-scrollbar flex-1 bg-transparent">
             <input type="hidden" id="containerId">
             <div class="space-y-8">
-                <div>
-                    <label class="block text-sm font-bold text-muted uppercase tracking-widest mb-3 ml-2">Container Identifier</label>
-                    <input type="text" id="containerTitle" placeholder="e.g., Project Alpha Assets" class="w-full bg-input border-2 border-[var(--border-color)] text-primary rounded-2xl p-5 outline-none font-bold text-lg transition-all focus:border-brand-500 shadow-inner modal-input">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-muted uppercase tracking-widest mb-3 ml-2">Container Identifier</label>
+                        <input type="text" id="containerTitle" placeholder="e.g., Project Alpha Assets" class="w-full bg-input border-2 border-[var(--border-color)] text-primary rounded-2xl p-5 outline-none font-bold text-lg transition-all focus:border-brand-500 shadow-inner modal-input">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-muted uppercase tracking-widest mb-3 ml-2">Status</label>
+                        <select id="containerStatus" class="w-full bg-input border-2 border-[var(--border-color)] text-primary rounded-2xl p-5 outline-none font-bold text-lg transition-all focus:border-brand-500 shadow-inner modal-input appearance-none">
+                            <option value="active">Active (Green)</option>
+                            <option value="new">New (Grey)</option>
+                            <option value="deactive">Deactive (Red)</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                    <!-- Text List Section -->
                     <div class="bg-input border border-[var(--border-color)] rounded-3xl p-6 flex flex-col shadow-lg">
                         <div class="flex items-center justify-between mb-6">
                             <div class="flex items-center gap-3">
@@ -558,7 +583,6 @@
                         </div>
                         <textarea id="containerTextList" class="w-full flex-1 bg-[var(--bg-panel)] border border-[var(--border-color)] text-emerald-500 rounded-2xl p-6 font-mono text-sm outline-none min-h-[350px] custom-scrollbar whitespace-nowrap overflow-x-auto modal-input focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 leading-relaxed shadow-inner" placeholder="Enter links, notes, or gsocket commands..."></textarea>
                     </div>
-                    <!-- Server Auth Section -->
                     <div class="bg-input border border-[var(--border-color)] rounded-3xl p-6 shadow-lg">
                         <div class="flex items-center gap-3 mb-6">
                             <div class="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-500 border border-purple-500/30"><i class="fa-solid fa-server"></i></div>
@@ -595,7 +619,6 @@
     </div>
 </div>
 
-<!-- View Container POPUP Modal (View Only Data) -->
 <div class="modal fixed inset-0 flex items-center justify-center p-4 md:p-8" id="modalViewContainer">
     <div class="fixed inset-0 bg-black/90 backdrop-blur-md" onclick="closeModal('modalViewContainer')"></div>
     <div class="modal-content rounded-3xl w-full max-w-6xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]">
@@ -749,6 +772,11 @@
         buttonsStyling: false
     });
 
+    function getMyRole() {
+        const roleEl = document.getElementById('headerRoleBadge');
+        return roleEl ? roleEl.innerText.trim().toLowerCase() : 'guest';
+    }
+
     function route(event, pathName) {
         event.preventDefault(); window.history.pushState({}, '', '/' + (pathName === 'dashboard' ? '' : pathName));
         const el = document.querySelector(`a[data-target="${pathName}"]`) || document.querySelector('#mainNav a');
@@ -766,7 +794,6 @@
         if (theme === 'light') { document.documentElement.classList.remove('dark'); document.getElementById('themeText').innerText = 'Light Mode'; document.getElementById('themeCircle').style.transform = 'translateX(20px)'; document.querySelector('.theme-toggle-btn').classList.add('bg-emerald-500'); document.querySelector('.theme-toggle-btn').classList.remove('bg-gray-600'); }
 
         const dropOverlay = document.getElementById('dropOverlay');
-        let dragTimer;
         document.body.addEventListener('dragover', function(e) {
             e.preventDefault();
             if(document.getElementById('view_files').classList.contains('active')){
@@ -800,7 +827,7 @@
 
         document.addEventListener('keydown', e => {
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
-                if (!document.getElementById('modalEditor').classList.contains('active')) {
+                if (!document.getElementById('modalEditor').classList.contains('active') && !document.getElementById('modalPreviewAsset').classList.contains('active')) {
                     e.preventDefault(); document.getElementById('globalSearch').focus();
                 }
             }
@@ -910,33 +937,40 @@
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
     async function loadSysInfo() {
-        const res = await fetch('index.php?api=sys_info').then(r=>r.json()).catch(e => { return {stats:{}, logs:[], activity:[]}; });
+        const res = await fetch('index.php?api=sys_info').then(r=>r.json()).catch(e => { return {stats:{}, extended:{}, logs:[], activity:[]}; });
         if(!res.stats) return;
-        const stats = res.stats;
         
-        document.getElementById('sysStatsList').innerHTML = `
-            <li class="flex justify-between border-b border-[var(--border-color)] pb-2"><span class="text-muted">Domain</span><span class="text-[#0ea5e9]">${stats.domain}</span></li>
-            <li class="flex justify-between border-b border-[var(--border-color)] pb-2"><span class="text-muted">Server IP</span><span class="text-primary">${stats.server_ip}</span></li>
-            <li class="flex justify-between border-b border-[var(--border-color)] pb-2"><span class="text-muted">Software</span><span class="text-primary truncate max-w-[120px]" title="${stats.software}">${stats.software}</span></li>
-            <li class="flex justify-between"><span class="text-muted">PHP Version</span><span class="text-blue-500">v${stats.php_version}</span></li>
-        `;
+        if (res.extended) {
+            document.getElementById('dashDisk').innerText = `${res.extended.disk_free} / ${res.extended.disk_total}`;
+            document.getElementById('dashSapi').innerText = res.extended.php_sapi;
+        }
 
         const logsList = document.getElementById('logsList'); logsList.innerHTML = '';
-        if(Array.isArray(res.logs)) {
-            res.logs.forEach(l => {
+        const logsData = Array.isArray(res.logs) ? res.logs : Object.values(res.logs || {});
+        if(logsData.length > 0) {
+            logsData.forEach(l => {
+                if(!l || !l.time) return;
                 const date = new Date(l.time * 1000).toLocaleString();
                 const status = l.status === 'Success' ? '<span class="text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded text-[10px] font-bold shadow-inner uppercase tracking-wider">SUCCESS</span>' : '<span class="text-red-500 bg-red-500/10 px-2 py-1 rounded text-[10px] font-bold shadow-inner uppercase tracking-wider">FAILED</span>';
                 logsList.innerHTML += `<tr class="border-b border-[var(--border-color)] hover:bg-[var(--hover-bg)] transition-colors"><td class="px-8 py-4 text-muted text-xs font-mono">${date}</td><td class="px-6 py-4 text-primary font-bold text-sm"><i class="fa-solid fa-user-shield text-muted mr-2 text-xs"></i>${l.user}</td><td class="px-6 py-4 text-[#0ea5e9] font-mono text-xs">${l.ip}</td><td class="px-6 py-4">${status}</td></tr>`;
             });
+        } else {
+            logsList.innerHTML = `<tr><td colspan="4" class="px-8 py-8 text-center text-muted text-sm">No access logs recorded.</td></tr>`;
         }
         
         const activityList = document.getElementById('activityList'); 
-        if(activityList && Array.isArray(res.activity)) {
+        if(activityList) {
             activityList.innerHTML = '';
-            res.activity.forEach(a => {
-                const date = new Date(a.time * 1000).toLocaleString();
-                activityList.innerHTML += `<tr class="border-b border-[var(--border-color)] hover:bg-[var(--hover-bg)] transition-colors"><td class="px-8 py-4 text-muted text-xs font-mono">${date}</td><td class="px-6 py-4 text-primary font-bold text-sm"><i class="fa-solid fa-user-shield text-muted mr-2 text-xs"></i>${a.user}</td><td class="px-6 py-4 text-purple-500 font-mono text-xs">${a.detail}</td></tr>`;
-            });
+            const activityData = Array.isArray(res.activity) ? res.activity : Object.values(res.activity || {});
+            if (activityData.length > 0) {
+                activityData.forEach(a => {
+                    if(!a || !a.time) return;
+                    const date = new Date(a.time * 1000).toLocaleString();
+                    activityList.innerHTML += `<tr class="border-b border-[var(--border-color)] hover:bg-[var(--hover-bg)] transition-colors"><td class="px-8 py-4 text-muted text-xs font-mono">${date}</td><td class="px-6 py-4 text-primary font-bold text-sm"><i class="fa-solid fa-user-shield text-muted mr-2 text-xs"></i>${a.user}</td><td class="px-6 py-4 text-purple-500 font-mono text-xs">${a.detail}</td></tr>`;
+                });
+            } else {
+                activityList.innerHTML = `<tr><td colspan="3" class="px-8 py-8 text-center text-muted text-sm">No activity recorded.</td></tr>`;
+            }
         }
     }
 
@@ -944,6 +978,17 @@
     function promptAuth(action, id, path = '', extra = '') {
         authTarget = { action, id, path, extra }; document.getElementById('authPassword').value = ''; document.getElementById('modalAuthPrompt').classList.add('active');
     }
+
+    window.attemptAction = async function(action, filename, owner) {
+        if(action === 'delete_file') {
+            promptAuth('delete_file', filename, currentPath);
+        } else if (action === 'zip_file' || action === 'unzip_file') {
+            const fd = new FormData(); fd.append('file', filename); fd.append('path', currentPath);
+            const res = await fetch('index.php?api=' + action, { method: 'POST', body: fd }).then(r=>r.json());
+            if(res.status === 'success') { Toast.fire({icon:'success', title: 'Action Executed'}); loadFiles(currentPath); }
+            else Toast.fire({icon:'error', title: res.message});
+        }
+    };
 
     async function executeAuthorizedAction() {
         const pass = document.getElementById('authPassword').value;
@@ -1027,7 +1072,9 @@
     // --- BULK FILE ACTIONS ---
     function toggleSelectAll(source) {
         const checkboxes = document.querySelectorAll('.file-sel');
-        checkboxes.forEach(cb => cb.checked = source.checked);
+        checkboxes.forEach(cb => {
+            if (cb.closest('tr').style.display !== 'none') { cb.checked = source.checked; }
+        });
         updateBulkToolbar();
     }
 
@@ -1093,7 +1140,7 @@
 
     // Paginated Load Files
     async function loadFiles(path = '') {
-        currentPath = path;
+        currentPath = path; document.getElementById('assetSearchFilter').value = '';
         const res = await fetch(`index.php?api=list_files&path=${path}`).then(r => r.json()).catch(e => { return {files:[]}; });
         globalFilesData = res.files;
         
@@ -1115,6 +1162,15 @@
         return '<i class="fa-solid fa-file text-muted text-2xl"></i>';
     }
 
+    function filterAssets() {
+        const q = document.getElementById('assetSearchFilter').value.toLowerCase();
+        const trs = document.getElementById('filesList').getElementsByTagName('tr');
+        Array.from(trs).forEach(tr => {
+            const name = tr.getAttribute('data-filename') || '';
+            tr.style.display = name.toLowerCase().includes(q) ? '' : 'none';
+        });
+    }
+
     function renderFiles(files, page = 1) {
         currentAssetsPage = page;
         const tbody = document.getElementById('filesList'); tbody.innerHTML = '';
@@ -1132,13 +1188,13 @@
             const cleanUrl = `${baseUrl}/view/${fileRoute}`;
             
             const color = stringToColor(f.owner);
-            // Single Click Open
-            const trClick = `onclick="if(${f.is_dir}) { navigateDown('${f.name}') } else { editFile('${f.name}') }"`;
+            // Single Click Preview
+            const trClick = `onclick="if(${f.is_dir}) { navigateDown('${f.name}') } else { previewFile('${f.name}') }"`;
             const cursor = 'cursor-pointer';
             const wgetCmd = `wget ${cleanUrl} -O ${f.name}`;
 
             tbody.innerHTML += `
-                <tr class="hover:bg-[var(--hover-bg)] transition-colors group ${cursor}" ${trClick}>
+                <tr class="hover:bg-[var(--hover-bg)] transition-colors group ${cursor}" data-filename="${f.name}" ${trClick}>
                     <td class="px-6 py-4 text-center" onclick="event.stopPropagation()">
                         <input type="checkbox" class="file-sel file-checkbox" value="${f.name}" onchange="updateBulkToolbar()">
                     </td>
@@ -1205,6 +1261,35 @@
         }
     }
 
+    window.previewFile = async function(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        const fileRoute = currentPath ? `${currentPath}/${filename}` : filename;
+        const cleanUrl = `${window.location.origin}/emerald_assets/${fileRoute}`;
+
+        document.getElementById('previewTitle').innerText = filename;
+        const contentArea = document.getElementById('previewContentArea');
+        contentArea.innerHTML = '<div class="absolute inset-0 flex items-center justify-center text-white"><i class="fa-solid fa-circle-notch fa-spin text-4xl"></i></div>';
+        document.getElementById('modalPreviewAsset').classList.add('active');
+
+        const btnEdit = document.getElementById('btnEditPreview');
+        btnEdit.onclick = function() { closeModal('modalPreviewAsset'); editFile(filename); };
+
+        if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico'].includes(ext)) {
+            contentArea.innerHTML = `<img src="${cleanUrl}" class="max-w-full max-h-full m-auto object-contain shadow-2xl">`;
+        } else if (['mp4', 'webm', 'ogg'].includes(ext)) {
+            contentArea.innerHTML = `<video controls src="${cleanUrl}" class="max-w-full max-h-full m-auto shadow-2xl"></video>`;
+        } else {
+            const fd = new FormData(); fd.append('file', filename); fd.append('path', currentPath);
+            const res = await fetch('index.php?api=read_file', { method: 'POST', body: fd }).then(r => r.json());
+            if (res.status === 'success') {
+                const escaped = res.content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                contentArea.innerHTML = `<pre class="text-gray-300 font-mono text-sm w-full h-full text-left bg-transparent p-6 whitespace-pre-wrap overflow-auto custom-scrollbar select-all cursor-text">${escaped}</pre>`;
+            } else {
+                contentArea.innerHTML = `<div class="absolute inset-0 flex items-center justify-center text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Error loading preview</div>`;
+            }
+        }
+    };
+
     async function editFile(filename) {
         const fd = new FormData(); fd.append('file', filename); fd.append('path', currentPath);
         const res = await fetch('index.php?api=read_file', { method: 'POST', body: fd }).then(r => r.json());
@@ -1219,7 +1304,7 @@
             editorInstance.setOption("mode", mode);
             editorInstance.setValue(res.content);
             document.getElementById('modalEditor').classList.add('active');
-            setTimeout(() => editorInstance.refresh(), 100);
+            setTimeout(() => { editorInstance.refresh(); }, 100);
         }
     }
 
@@ -1241,10 +1326,19 @@
             const avatarUrl = note.avatar || `https://ui-avatars.com/api/?name=${note.owner}&background=0ea5e9&color=fff&rounded=true&bold=true`;
             const date = new Date(note.timestamp * 1000).toLocaleString();
             
+            let data = {}; try { data = JSON.parse(note.data); } catch(e){}
+            let statusColor = 'bg-emerald-500'; let statusText = 'Active';
+            if(data.status === 'new') { statusColor = 'bg-gray-400'; statusText = 'New'; }
+            else if(data.status === 'deactive') { statusColor = 'bg-red-500'; statusText = 'Deactive'; }
+
             listArea.innerHTML += `
-                <div class="flex items-center p-5 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-2xl hover:bg-[var(--hover-bg)] cursor-pointer transition-all shadow-[var(--shadow)] group hover:-translate-y-1" onclick="viewContainer('${note.id}')">
+                <div class="flex items-center p-5 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-2xl hover:bg-[var(--hover-bg)] cursor-pointer transition-all shadow-[var(--shadow)] group hover:-translate-y-1 relative" onclick="viewContainer('${note.id}')">
+                    <div class="absolute top-4 right-4 flex items-center gap-2">
+                        <div class="w-2.5 h-2.5 rounded-full ${statusColor} shadow-md border border-[var(--bg-panel)]"></div>
+                        <span class="text-[9px] uppercase font-bold text-muted tracking-widest">${statusText}</span>
+                    </div>
                     <img src="${avatarUrl}" class="w-14 h-14 rounded-full border-2 border-brand-500/50 object-cover shadow-[0_0_10px_rgba(14,165,233,0.3)] mr-5">
-                    <div class="flex-1 overflow-hidden">
+                    <div class="flex-1 overflow-hidden pr-16">
                         <h3 class="font-extrabold text-primary text-xl tracking-wide truncate group-hover:text-brand-500 transition-colors">${note.title}</h3>
                         <p class="text-xs text-muted font-mono mt-1"><i class="fa-regular fa-clock mr-1"></i> ${date}</p>
                     </div>
@@ -1313,11 +1407,12 @@
         const note = globalNotesData.find(n => n.id === id); 
         if(!note) return;
         document.getElementById('containerId').value = note.id; document.getElementById('containerTitle').value = note.title;
-        let data = { auth: {host:'', user:'', pass:'', dir:''}, list: '' };
+        let data = { auth: {host:'', user:'', pass:'', dir:''}, list: '', status: 'active' };
         try { data = JSON.parse(note.data); } catch(e){}
-        document.getElementById('containerHost').value = data.auth.host; document.getElementById('containerUser').value = data.auth.user; 
-        document.getElementById('containerPass').value = data.auth.pass; document.getElementById('containerDir').value = data.auth.dir;
-        document.getElementById('containerTextList').value = data.list;
+        document.getElementById('containerHost').value = data.auth.host || ''; document.getElementById('containerUser').value = data.auth.user || ''; 
+        document.getElementById('containerPass').value = data.auth.pass || ''; document.getElementById('containerDir').value = data.auth.dir || '';
+        document.getElementById('containerTextList').value = data.list || '';
+        document.getElementById('containerStatus').value = data.status || 'active';
         document.getElementById('modalContainer').classList.add('active');
     };
 
@@ -1326,6 +1421,7 @@
         document.getElementById('containerHost').value = ''; document.getElementById('containerUser').value = ''; 
         document.getElementById('containerPass').value = ''; document.getElementById('containerDir').value = '';
         document.getElementById('containerTextList').value = '';
+        document.getElementById('containerStatus').value = 'active';
         document.getElementById('modalContainer').classList.add('active');
     }
 
@@ -1334,6 +1430,7 @@
         fd.append('id', document.getElementById('containerId').value); fd.append('title', document.getElementById('containerTitle').value || 'Untitled'); 
         fd.append('host', document.getElementById('containerHost').value); fd.append('user', document.getElementById('containerUser').value);
         fd.append('pass', document.getElementById('containerPass').value); fd.append('dir', document.getElementById('containerDir').value);
+        fd.append('status', document.getElementById('containerStatus').value);
         fd.append('text_list', document.getElementById('containerTextList').value);
         await fetch('index.php?api=save_note', { method: 'POST', body: fd }); 
         closeModal('modalContainer'); loadNotes(); Toast.fire({icon:'success', title:'Container Built'});
@@ -1533,7 +1630,7 @@
         if (document.getElementById('view_cloaking').classList.contains('active')) renderCloaking(globalCloakData.filter(c => c.domain.toLowerCase().includes(q) || c.path.toLowerCase().includes(q)));
     }
 
-    // Interval Heartbeat Ringan (Hanya DOM updates)
+    // Interval Heartbeat Ringan
     setInterval(async () => { 
         const res = await fetch('index.php?api=heartbeat').then(r=>r.json());
         if(res.status === 'success' && res.online_data && document.getElementById('view_users').classList.contains('active')) {
