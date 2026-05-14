@@ -27,9 +27,10 @@ if (isset($_GET['api'])) {
     if ($_GET['api'] == 'list_notes') {
         $user = sanitize($_POST['user']); $user_dir = NOTEPAD_DIR . "/{$user}";
         if(!is_dir($user_dir)) mkdir($user_dir, 0755, true);
+        clearstatcache();
         $notes = [];
         foreach(scandir($user_dir) as $file) { if($file !== '.' && $file !== '..') $notes[] = $file; }
-        echo json_encode(['status' => 'success', 'notes' => $notes]); exit;
+        echo json_encode(['status' => 'success', 'notes' => array_values($notes)]); exit;
     }
 
     if ($_GET['api'] == 'load_note') {
@@ -54,7 +55,7 @@ if (isset($_GET['api'])) {
         if(strpos($file, '.txt') === false) $file .= '.txt';
         $user_dir = NOTEPAD_DIR . "/{$user}";
         if(!is_dir($user_dir)) mkdir($user_dir, 0755, true);
-        if(!file_exists("{$user_dir}/{$file}")) file_put_contents("{$user_dir}/{$file}", '');
+        if(!file_exists("{$user_dir}/{$file}")) { file_put_contents("{$user_dir}/{$file}", ''); }
         echo json_encode(['status' => 'success']); exit;
     }
 
@@ -77,8 +78,6 @@ if (isset($_GET['api'])) {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
-    <!-- Quill Rich Text Editor CSS -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 
     <style>
@@ -95,11 +94,9 @@ if (isset($_GET['api'])) {
         .btn-animated:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
         .btn-animated:active { transform: translateY(1px); }
         
-        /* Quill JS Clean UI Mode + Line Numbers */
         .ql-toolbar.ql-snow { border: none !important; border-bottom: 1px solid rgba(0,0,0,0.05) !important; background: #ffffff !important; font-family: 'Inter', sans-serif; padding: 12px !important; }
         .ql-container.ql-snow { border: none !important; background: #f8fafc !important; font-family: 'Inter', sans-serif; font-size: 15px; }
         .ql-editor { color: #1f2937 !important; counter-reset: line; padding-left: 60px !important; }
-        
         .ql-editor p, .ql-editor h1, .ql-editor h2, .ql-editor blockquote, .ql-editor pre { position: relative; }
         .ql-editor p::before, .ql-editor h1::before, .ql-editor h2::before, .ql-editor blockquote::before, .ql-editor pre::before {
             counter-increment: line; content: counter(line); position: absolute; left: -45px; top: 0;
@@ -112,7 +109,6 @@ if (isset($_GET['api'])) {
         .ql-snow.ql-toolbar button:hover .ql-stroke, .ql-snow .ql-toolbar button:hover .ql-stroke { stroke: #10b981 !important; }
         .ql-snow.ql-toolbar button:hover .ql-fill, .ql-snow .ql-toolbar button:hover .ql-fill { fill: #10b981 !important; }
         
-        /* Custom Auth Modal Hidden State FIX */
         #authModal { visibility: hidden; opacity: 0; pointer-events: none; transition: all 0.3s ease; }
         #authModal.flex { visibility: visible; opacity: 1; pointer-events: auto; }
         
@@ -142,7 +138,6 @@ if (isset($_GET['api'])) {
         <div class="flex flex-wrap justify-center gap-8 pt-10" id="userContainerList"></div>
     </div>
 
-    <!-- UI Custom HTML Modal Notepad Login (Fixed Leaks) -->
     <div id="authModal" class="fixed inset-0 bg-gray-900/40 backdrop-blur-md items-center justify-center">
         <div class="bg-white rounded-3xl w-full max-w-sm p-10 text-center shadow-2xl transform transition-all scale-95 border border-gray-100" id="authModalContent">
             <h3 class="font-extrabold text-2xl text-gray-900 mb-2">Authorization Required</h3>
@@ -188,7 +183,6 @@ if (isset($_GET['api'])) {
         </div>
     </div>
 
-    <!-- Find & Replace Modal -->
     <div class="modal fixed inset-0 flex items-center justify-center p-4" id="modalFindReplace">
         <div class="fixed inset-0 bg-gray-900/40 backdrop-blur-md" onclick="closeModal('modalFindReplace')"></div>
         <div class="modal-content bg-white rounded-3xl shadow-2xl w-full max-w-sm relative z-10 overflow-hidden p-8 border border-gray-100 text-center">
@@ -243,20 +237,33 @@ if (isset($_GET['api'])) {
                     [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                     ['link', 'image'],
                     ['clean']
-                ]
+                ],
+                keyboard: {
+                    bindings: {
+                        customSave: {
+                            key: 'S', shortKey: true,
+                            handler: function(range, context) {
+                                if(activeFile) saveNotepad();
+                                return false; 
+                            }
+                        }
+                    }
+                }
             }
         });
         
         document.addEventListener('keydown', e => { 
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { 
-                e.preventDefault(); 
-                if(activeFile) saveNotepad(); 
+            if (!document.getElementById('editorView').classList.contains('hidden')) {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { 
+                    e.preventDefault(); 
+                    if(activeFile) saveNotepad(); 
+                }
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') { 
+                    e.preventDefault(); 
+                    if(activeFile) openFindModal(); 
+                }
             }
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') { 
-                e.preventDefault(); 
-                if(activeFile) openFindModal(); 
-            }
-        });
+        }, { passive: false });
 
         const savedUser = localStorage.getItem('emerald_np_user');
         const savedPass = localStorage.getItem('emerald_np_pass');
@@ -346,9 +353,9 @@ if (isset($_GET['api'])) {
         const fd = new FormData(); fd.append('user', activeUser);
         const res = await fetch('notepad.php?api=list_notes', { method: 'POST', body: fd }).then(r=>r.json());
         const list = document.getElementById('notesList'); list.innerHTML = '';
-        if(res.notes.length === 0) {
+        if(res.notes && res.notes.length === 0) {
             quill.setText(''); quill.disable(); document.getElementById('currentFileDisplay').innerText = 'No tabs active'; activeFile = ''; localStorage.removeItem('emerald_np_file');
-        } else {
+        } else if (res.notes) {
             res.notes.forEach(f => {
                 const isActive = (f === activeFile) ? 'active bg-emerald-500/10' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900 border-l-transparent';
                 list.innerHTML += `<button onclick="loadFile('${f}')" class="tab-btn w-full text-left px-5 py-4 rounded-xl font-mono text-sm truncate ${isActive}"><i class="fa-solid fa-file-lines mr-3 ${f === activeFile ? 'text-emerald-500' : 'text-gray-400'}"></i>${f}</button>`;
@@ -395,6 +402,7 @@ if (isset($_GET['api'])) {
             await fetch('notepad.php?api=create_note', { method: 'POST', body: fd });
             activeFile = fileName.includes('.txt') ? fileName : fileName + '.txt';
             await refreshNotesList();
+            await loadFile(activeFile);
         }
     }
 
