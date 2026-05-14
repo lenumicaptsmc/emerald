@@ -13,7 +13,6 @@ $current_user = $_SESSION['emerald_user'];
 $users = getDB($users_db);
 $current_role = $users[$current_user]['role'] ?? 'guest';
 
-// Real-time Heartbeat
 if ($action === 'heartbeat') {
     $users[$current_user]['last_active'] = time();
     saveDB($users_db, $users);
@@ -31,10 +30,28 @@ if ($current_role === 'guest' && in_array($action, $modifying_actions)) {
 }
 
 if ($action === 'sys_info') {
-    echo json_encode(['stats' => getSystemStats(), 'logs' => getDB($logs_db), 'activity' => getDB($activity_db), 'firewall_count' => count(getDB($firewall_db))]); exit;
+    $logs = getDB($logs_db);
+    $activity = getDB($activity_db);
+    $disk_free = @disk_free_space('/');
+    $disk_total = @disk_total_space('/');
+    
+    // Perbaikan Bug: Memastikan object convert ke array indexing jika struktur file JSON error
+    $parsed_logs = (is_array($logs) || is_object($logs)) ? array_values((array)$logs) : [];
+    $parsed_activity = (is_array($activity) || is_object($activity)) ? array_values((array)$activity) : [];
+
+    echo json_encode([
+        'stats' => getSystemStats(),
+        'extended' => [
+            'disk_free' => formatSize($disk_free ?: 0),
+            'disk_total' => formatSize($disk_total ?: 0),
+            'php_sapi' => php_sapi_name()
+        ],
+        'logs' => $parsed_logs,
+        'activity' => $parsed_activity,
+        'firewall_count' => count(getDB($firewall_db))
+    ]); exit;
 }
 
-// === FIREWALL API ===
 if ($action === 'list_firewall') {
     echo json_encode(array_values(getDB($firewall_db))); exit;
 }
@@ -65,7 +82,6 @@ if ($action === 'delete_firewall') {
     echo json_encode(['status' => 'success']); exit;
 }
 
-// === ASSETS API ===
 if ($action === 'list_files') {
     $files = []; $file_meta = getDB($file_meta_db);
     $path_param = isset($_GET['path']) ? trim(sanitize($_GET['path']), '/') : '';
@@ -190,7 +206,6 @@ function recursiveRemoveDir($dir) {
     }
 }
 
-// MULTI DELETE
 if ($action === 'multi_delete') {
     $files = json_decode($_POST['files'], true);
     $path_param = isset($_POST['path']) ? trim(sanitize($_POST['path']), '/') : '';
@@ -223,12 +238,11 @@ if ($action === 'multi_delete') {
     exit;
 }
 
-// PASTE FILES (Copy / Cut)
 if ($action === 'paste_files') {
     $files = json_decode($_POST['files'], true);
     $source_path = isset($_POST['source_path']) ? trim(sanitize($_POST['source_path']), '/') : '';
     $target_path = isset($_POST['target_path']) ? trim(sanitize($_POST['target_path']), '/') : '';
-    $mode = $_POST['mode']; // copy or cut
+    $mode = $_POST['mode'];
 
     $base_src = ASSETS_DIR . ($source_path ? '/' . $source_path : '');
     $base_tgt = ASSETS_DIR . ($target_path ? '/' . $target_path : '');
@@ -242,7 +256,7 @@ if ($action === 'paste_files') {
         if(file_exists($src)) {
             if($mode === 'cut') {
                 rename($src, $tgt);
-                $file_meta[$file] = $current_user; // Update owner
+                $file_meta[$file] = $current_user;
                 logActivity($current_user, "Moved asset: $file");
             } else {
                 if(is_dir($src)) recursiveCopy($src, $tgt); else copy($src, $tgt);
@@ -315,9 +329,11 @@ if ($action === 'save_note') {
         $parsed_list[] = $cl;
     }
     $title = sanitize($_POST['title']);
+    $status = sanitize($_POST['status'] ?? 'active');
     $data = [
         'auth' => ['host' => sanitize($_POST['host']), 'user' => sanitize($_POST['user']), 'pass' => sanitize($_POST['pass']), 'dir'  => sanitize($_POST['dir'])],
-        'list' => implode("\n", $parsed_list)
+        'list' => implode("\n", $parsed_list),
+        'status' => $status
     ];
     $notes[$id] = ['id' => $id, 'title' => $title, 'owner' => $current_user, 'timestamp' => time(), 'data' => json_encode($data)];
     saveDB($notes_db, $notes); 
