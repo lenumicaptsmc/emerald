@@ -65,8 +65,7 @@
         .container-card { transition: all 0.2s ease; border: 1px solid var(--border-color); background: var(--bg-panel); backdrop-filter: blur(10px); border-radius: 1.25rem; overflow: hidden; cursor: pointer; }
         .container-card:hover { transform: translateY(-5px); box-shadow: var(--shadow); border-color: var(--text-muted); }
         
-        /* Fix Layout Scroll pada Editor CodeMirror */
-        #editorContainer { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+        #editorContainer, .encoder-editor { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
         .CodeMirror { position: absolute; top: 0; left: 0; right: 0; bottom: 0; height: 100% !important; font-family: 'Fira Code', monospace; font-size: 14px; background: #1e1e1e !important; color: #d4d4d4 !important; }
         html:not(.dark) .CodeMirror { background: #ffffff !important; color: #111827 !important; }
         
@@ -130,6 +129,9 @@
         <nav class="flex-1 px-5 py-8 space-y-3 overflow-y-auto custom-scrollbar" id="mainNav">
             <a href="/dashboard" onclick="route(event, 'dashboard')" class="nav-item w-full flex items-center gap-4 px-5 py-3.5 text-muted hover:bg-[var(--hover-bg)] hover:text-primary border border-transparent rounded-2xl font-medium transition-all" data-target="dashboard">
                 <i class="fa-solid fa-chart-pie w-6 text-center"></i> System Overview
+            </a>
+            <a href="/encoder" onclick="route(event, 'encoder')" class="nav-item w-full flex items-center gap-4 px-5 py-3.5 text-muted hover:bg-[var(--hover-bg)] hover:text-primary border border-transparent rounded-2xl font-medium transition-all" data-target="encoder">
+                <i class="fa-solid fa-laptop-code w-6 text-center"></i> Payload Encoder
             </a>
             <a href="/assets" onclick="route(event, 'files')" class="nav-item w-full flex items-center gap-4 px-5 py-3.5 text-muted hover:bg-[var(--hover-bg)] hover:text-primary border border-transparent rounded-2xl font-medium transition-all" data-target="files">
                 <i class="fa-solid fa-folder-open w-6 text-center"></i> Assets Manager
@@ -276,6 +278,66 @@
                                 </thead>
                                 <tbody id="activityList" class="divide-y divide-[var(--border-color)] text-sm font-medium"></tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view_encoder" class="view-section">
+                <div class="flex justify-between items-center mb-6">
+                    <p class="text-muted font-medium">Professional-Grade Script Obfuscator & Payload Encoder.</p>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[70vh]">
+                    <div class="bg-panel border border-border rounded-2xl overflow-hidden shadow-[var(--shadow)] backdrop-blur-md flex flex-col">
+                        <div class="px-6 py-4 border-b border-border bg-[var(--hover-bg)] flex justify-between items-center shrink-0">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-code text-brand-500"></i>
+                                <h3 class="font-bold text-primary">Raw Payload</h3>
+                            </div>
+                            <select id="encodeAction" class="bg-input border border-border text-primary text-xs font-bold rounded-lg px-3 py-1.5 outline-none focus:border-brand-500 shadow-sm cursor-pointer">
+                                <option value="netherside">Obfuscate (Netherside)</option>
+                                <option value="base64_encode">Base64 Encode</option>
+                                <option value="base64_decode">Base64 Decode</option>
+                                <option value="base32_encode">Base32 Encode</option>
+                                <option value="base32_decode">Base32 Decode</option>
+                                <option value="hex_encode">Hex Encode</option>
+                                <option value="hex_decode">Hex Decode</option>
+                                <option value="url_encode">URL Encode</option>
+                                <option value="url_decode">URL Decode</option>
+                                <option value="rot13">ROT13 Cipher</option>
+                                <option value="str_reverse">String Reverse</option>
+                                <option value="html_minify">HTML Minifier</option>
+                                <option value="gz_base64">GZDeflate + Base64</option>
+                            </select>
+                        </div>
+                        <div class="encoder-editor bg-[#1e1e1e]">
+                            <textarea id="encodeInputCode"></textarea>
+                        </div>
+                        <div class="px-6 py-4 border-t border-border bg-[var(--hover-bg)] flex justify-end shrink-0">
+                            <button id="btnExecuteEncode" class="btn-gradient px-8 py-2.5 text-sm font-bold rounded-xl btn-animated flex items-center gap-2 text-white shadow-lg" onclick="executeEncode()">
+                                <i class="fa-solid fa-bolt"></i> Execute Payload
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-panel border border-border rounded-2xl overflow-hidden shadow-[var(--shadow)] backdrop-blur-md flex flex-col">
+                        <div class="px-6 py-4 border-b border-border bg-[var(--hover-bg)] flex justify-between items-center shrink-0">
+                            <div class="flex items-center gap-3">
+                                <i class="fa-solid fa-terminal text-purple-500"></i>
+                                <h3 class="font-bold text-primary">Result Artifact</h3>
+                            </div>
+                            <div class="text-[10px] font-mono text-muted bg-input px-3 py-1.5 rounded-lg border border-border shadow-inner">
+                                EXE: <span id="encodeTime" class="text-purple-500 font-bold">0ms</span> | 
+                                SIZE: <span id="encodeSize" class="text-brand-500 font-bold">0</span> bytes
+                            </div>
+                        </div>
+                        <div class="encoder-editor bg-[#1e1e1e]">
+                            <textarea id="encodeOutputCode"></textarea>
+                        </div>
+                        <div class="px-6 py-4 border-t border-border bg-[var(--hover-bg)] flex justify-end shrink-0">
+                            <button class="bg-[var(--bg-input)] border border-border text-primary px-8 py-2.5 text-sm font-bold rounded-xl hover:bg-[var(--hover-bg)] transition-all btn-animated flex items-center gap-2 shadow-sm" onclick="copyEncodeResult()">
+                                <i class="fa-regular fa-copy text-[#10b981]"></i> Copy Artifact
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -749,7 +811,8 @@
 </div>
 
 <script>
-    let currentEditorFile = ''; let editorInstance = null; let globalFilesData = []; let globalNotesData = []; let globalCloakData = []; let globalUsers = []; let currentPath = ''; 
+    let currentEditorFile = ''; let editorInstance = null; let encodeInputEditor = null; let encodeOutputEditor = null;
+    let globalFilesData = []; let globalNotesData = []; let globalCloakData = []; let globalUsers = []; let currentPath = ''; 
     let currentAssetsPage = 1; const ASSETS_PER_PAGE = 100;
     const currentUser = '<?= $_SESSION['emerald_user'] ?>';
     let clipboard = { action: '', files: [], sourcePath: '' };
@@ -823,7 +886,20 @@
             matchBrackets: true, autoCloseBrackets: true, lineWrapping: true,
             extraKeys: { "Ctrl-F": "findPersistent", "Ctrl-S": function(cm) { saveFileEditor(); } }
         });
-        if(theme === 'light') editorInstance.setOption('theme', 'default');
+        
+        // Init Encoder Editors
+        encodeInputEditor = CodeMirror.fromTextArea(document.getElementById("encodeInputCode"), {
+            lineNumbers: true, theme: "monokai", mode: "php", matchBrackets: true, lineWrapping: true
+        });
+        encodeOutputEditor = CodeMirror.fromTextArea(document.getElementById("encodeOutputCode"), {
+            lineNumbers: true, theme: "monokai", mode: "php", readOnly: true, lineWrapping: true
+        });
+
+        if(theme === 'light') {
+            editorInstance.setOption('theme', 'default');
+            encodeInputEditor.setOption('theme', 'default');
+            encodeOutputEditor.setOption('theme', 'default');
+        }
 
         document.addEventListener('keydown', e => {
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
@@ -901,9 +977,13 @@
         if (!body.classList.contains('dark')) {
             localStorage.setItem('emerald_theme', 'light'); text.innerText = 'Light Mode'; circle.style.transform = 'translateX(20px)'; btn.classList.add('bg-emerald-500'); btn.classList.remove('bg-gray-600');
             if(editorInstance) editorInstance.setOption('theme', 'default');
+            if(encodeInputEditor) encodeInputEditor.setOption('theme', 'default');
+            if(encodeOutputEditor) encodeOutputEditor.setOption('theme', 'default');
         } else {
             localStorage.setItem('emerald_theme', 'dark'); text.innerText = 'Dark Mode'; circle.style.transform = 'translateX(0)'; btn.classList.remove('bg-emerald-500'); btn.classList.add('bg-gray-600');
             if(editorInstance) editorInstance.setOption('theme', 'monokai');
+            if(encodeInputEditor) encodeInputEditor.setOption('theme', 'monokai');
+            if(encodeOutputEditor) encodeOutputEditor.setOption('theme', 'monokai');
         }
     }
 
@@ -922,7 +1002,7 @@
         document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
         document.getElementById('view_' + tabId).classList.add('active');
         
-        const titles = {'dashboard': 'System Overview', 'files': 'Assets Manager', 'notes': 'Unified Containers', 'cloaking': 'SEO Cloaking', 'users': 'System Users', 'firewall': 'Firewall & IPs'};
+        const titles = {'dashboard': 'System Overview', 'encoder': 'Payload Encoder', 'files': 'Assets Manager', 'notes': 'Unified Containers', 'cloaking': 'SEO Cloaking', 'users': 'System Users', 'firewall': 'Firewall & IPs'};
         document.getElementById('pageTitle').innerText = titles[tabId];
         document.getElementById('breadcrumb').style.opacity = (tabId === 'files') ? '1' : '0';
 
@@ -932,9 +1012,67 @@
         if (tabId === 'cloaking') loadCloaking();
         if (tabId === 'users') loadUsers();
         if (tabId === 'firewall') loadFirewall();
+        
+        if (tabId === 'encoder') {
+            setTimeout(() => {
+                if(encodeInputEditor) encodeInputEditor.refresh();
+                if(encodeOutputEditor) encodeOutputEditor.refresh();
+            }, 50);
+        }
     }
 
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    // --- ENCODER LOGIC ---
+    async function executeEncode() {
+        const rawCode = encodeInputEditor.getValue();
+        if(!rawCode.trim()) { Toast.fire({icon: 'error', title: 'Payload is empty'}); return; }
+        
+        const action = document.getElementById('encodeAction').value;
+        const fd = new FormData();
+        fd.append('raw_code', rawCode);
+        fd.append('encode_action', action);
+        
+        const btn = document.getElementById('btnExecuteEncode');
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...';
+        
+        try {
+            const res = await fetch('index.php?api=encode', { method: 'POST', body: fd }).then(r=>r.json());
+            if(res.status === 'success') {
+                encodeOutputEditor.setValue(res.output);
+                document.getElementById('encodeTime').innerText = res.time + 'ms';
+                document.getElementById('encodeSize').innerText = res.size;
+                Toast.fire({icon: 'success', title: 'Encoding Complete'});
+            } else {
+                Toast.fire({icon: 'error', title: res.message || 'Error executing script'});
+            }
+        } catch(e) {
+            Toast.fire({icon: 'error', title: 'Network Error'});
+        }
+        btn.innerHTML = originalContent;
+    }
+
+    function copyEncodeResult() {
+        const val = encodeOutputEditor.getValue();
+        if(!val) return;
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(val).then(() => {
+                Toast.fire({icon: 'success', title: 'Copied to Clipboard'});
+            }).catch(() => fallbackCopy(val));
+        } else { fallbackCopy(val); }
+    }
+    
+    function fallbackCopy(val) {
+        const textArea = document.createElement("textarea");
+        textArea.value = val;
+        textArea.style.position = "fixed";
+        document.body.appendChild(textArea);
+        textArea.focus(); textArea.select();
+        try { document.execCommand('copy'); Toast.fire({icon: 'success', title: 'Copied to Clipboard'}); } 
+        catch (err) { Toast.fire({icon: 'error', title: 'Failed to Copy'}); }
+        document.body.removeChild(textArea);
+    }
 
     async function loadSysInfo() {
         const res = await fetch('index.php?api=sys_info').then(r=>r.json()).catch(e => { return {stats:{}, extended:{}, logs:[], activity:[]}; });
@@ -1171,6 +1309,31 @@
         });
     }
 
+    async function promptRename(oldName) {
+        const { value: newName } = await swalDark.fire({
+            title: 'Rename Asset',
+            html: `<p class="text-sm text-muted font-medium mb-6">Enter new name for <b>${oldName}</b>.</p>`,
+            input: 'text',
+            inputValue: oldName,
+            showCancelButton: true
+        });
+        
+        if (newName && newName !== oldName) {
+            const fd = new FormData(); 
+            fd.append('old_name', oldName); 
+            fd.append('new_name', newName); 
+            fd.append('path', currentPath);
+            
+            const res = await fetch('index.php?api=rename_file', { method: 'POST', body: fd }).then(r => r.json());
+            if (res.status === 'success') {
+                Toast.fire({icon: 'success', title: 'Asset Renamed'});
+                loadFiles(currentPath);
+            } else {
+                Toast.fire({icon: 'error', title: res.message});
+            }
+        }
+    }
+
     function renderFiles(files, page = 1) {
         currentAssetsPage = page;
         const tbody = document.getElementById('filesList'); tbody.innerHTML = '';
@@ -1223,6 +1386,7 @@
                         ${!f.is_dir ? `<button onclick="copyToClipboard('${wgetCmd.replace(/'/g,"\\'").replace(/"/g,"&quot;")}')" class="w-10 h-10 rounded-xl bg-[var(--bg-input)] border border-[var(--border-color)] text-[#0ea5e9] hover:text-white hover:bg-[#0ea5e9] transition-all shadow-lg" title="Copy Wget Command"><i class="fa-solid fa-terminal"></i></button>` : ''}
                         ${!f.is_dir ? `<a href="${cleanUrl}" target="_blank" class="w-10 h-10 inline-flex items-center justify-center rounded-xl bg-[var(--bg-input)] border border-[var(--border-color)] text-[#10b981] hover:text-white hover:bg-[#10b981] transition-all shadow-lg" title="Open Link"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>` : ''}
                         ${!f.is_dir ? `<a href="/emerald_assets/${currentPath ? currentPath+'/' : ''}${f.name}" download class="w-10 h-10 inline-flex items-center justify-center rounded-xl bg-[var(--bg-input)] border border-[var(--border-color)] text-muted hover:text-primary hover:bg-[var(--hover-bg)] transition-all shadow-lg" title="Download"><i class="fa-solid fa-download"></i></a>` : ''}
+                        <button onclick="promptRename('${f.name}')" class="w-10 h-10 rounded-xl bg-[var(--bg-input)] border border-[var(--border-color)] text-muted hover:text-blue-500 hover:bg-blue-500/10 transition-all shadow-lg" title="Rename"><i class="fa-solid fa-pen"></i></button>
                         <button onclick="attemptAction('delete_file', '${f.name}', '${f.owner}')" class="w-10 h-10 rounded-xl bg-[var(--bg-input)] border border-[var(--border-color)] text-muted hover:text-red-500 hover:bg-red-500/10 transition-all shadow-lg" title="Erase"><i class="fa-solid fa-trash"></i></button>
                     </td>
                 </tr>
